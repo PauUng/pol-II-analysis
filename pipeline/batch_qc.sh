@@ -15,7 +15,7 @@ input_folder=""
 output_folder=""
 run_locally=false
 docker_image_path="$repository_path"/docker_images/bioinfo_tools.tar
-slurm_log_folder="$repository_path"/slurm_logs
+slurm_log_folder="$output_folder"/slurm_logs
 
 # Parse command line arguments
 while getopts ":i:o:d:l:L" opt; do
@@ -53,18 +53,21 @@ if [ -z "$input_folder" ] || [ -z "$output_folder" ]; then
 fi
 
 # Create output folder if it doesn't exist
-mkdir "$output_folder" -p
+mkdir -p "$output_folder"
 
-for sub_folder in "$input_folder"/*; do
-  sample_name=$(basename "$sub_folder")
-  if [ "$run_locally" = true ]; then
-    echo "Processing sample $sample_name"
-    sh "$repository_path"/scripts/fastqc.sh -i "$sub_folder" -o "$output_folder"/"$sample_name" \
-    -d "$docker_image_path"
-  else
-    echo "Submitting sample $sample_name"
-    sbatch --output="$slurm_log_folder"/%j_%x.log --error="$slurm_log_folder"/%j_%x.err \
-    "$repository_path"/scripts/fastqc.sh -i "$sub_folder" -o "$output_folder"/"$sample_name" \
-    -d "$docker_image_path"
-  fi
+# Extract sample names by identifying unique prefixes before _R1 or _R2
+find "$input_folder" -type f -name "*_R[12]*.fastq.gz" | \
+    sed -E 's/_(R1|R2).*//' | sort | uniq | while read sample_path; do
+    sample_name=$(basename "$sample_path")
+    
+    if [ "$run_locally" = true ]; then
+        echo "Processing sample $sample_name"
+        sh "$repository_path"/scripts/fastqc.sh -i "$input_folder" -o "$output_folder"/"$sample_name" \
+        -d "$docker_image_path"
+    else
+        echo "Submitting sample $sample_name"
+        sbatch --output="$slurm_log_folder"/%j_%x.log --error="$slurm_log_folder"/%j_%x.err \
+        "$repository_path"/scripts/fastqc.sh -i "$input_folder" -o "$output_folder"/"$sample_name" \
+        -d "$docker_image_path"
+    fi
 done
