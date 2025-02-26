@@ -63,6 +63,7 @@ docker run --rm -v "$input_folder":/input_folder -v "$output_folder":/output_fol
 bioinfo_tools /bin/sh -c "atria --read1 /input_folder/R1.fastq.gz --read2 /input_folder/R2.fastq.gz \
 --adapter1 \$(jq -r '.adapter_1' /aggregated_adapters_folder/aggregated_adapters.json) \
 --adapter2 \$(jq -r '.adapter_2' /aggregated_adapters_folder/aggregated_adapters.json) \
+--pcr-dedup \
 --output-dir /output_folder -t 12; \
 mv /output_folder/R1.atria.fastq.gz /output_folder/R1.fastq.gz; \
 mv /output_folder/R2.atria.fastq.gz /output_folder/R2.fastq.gz; \
